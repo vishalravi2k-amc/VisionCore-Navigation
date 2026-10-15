@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VisionCore | Real-Time Geolocation & Waypoint Navigation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #030712; color: #f3f4f6; font-family: system-ui, -apple-system, sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .glow-cyan { text-shadow: 0 0 20px rgba(6, 182, 212, 0.6); }
+        .glow-box { box-shadow: 0 0 30px rgba(6, 182, 212, 0.15); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-6">
+    <header class="max-w-6xl mx-auto w-full flex justify-between items-center py-4 border-b border-gray-800">
+        <div>
+            <h1 class="text-2xl font-black tracking-wider text-cyan-400 glow-cyan">VISIONCORE GPS</h1>
+            <p class="text-xs text-gray-400">AMC Engineering College | CSE (AIML) Track 3</p>
+        </div>
+        <div class="text-right text-xs text-gray-400 hidden sm:block">
+            <p class="text-purple-400 font-semibold">Team Manifest:</p>
+            <p>1AM24CI101 (Vishal) | 1AM24CI135 (Sagar)</p>
+            <p>1AM24AI083 (Harivishnu) | 1AM24CI002 (Abdur)</p>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
+        <div class="glass p-6 rounded-2xl glow-box md:col-span-2 flex flex-col justify-between">
+            <div>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-cyan-300">Live GPS & Waypoint Radar</h2>
+                    <span id="gpsStatus" class="px-3 py-1 bg-cyan-500/20 text-cyan-400 text-xs rounded-full border border-cyan-500/30 animate-pulse">● Acquiring GPS Location...</span>
+                </div>
+                <div class="relative w-full h-64 bg-black/60 rounded-xl border border-gray-800 flex flex-col items-center justify-center p-6 text-center overflow-hidden">
+                    <div class="absolute inset-0 opacity-20 bg-[radial-gradient(#06b6d4_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                    <div id="radarDisplay" class="z-10 space-y-2">
+                        <p class="text-cyan-400 font-mono text-sm">Latitude: <span id="latVal">Fetching...</span> | Longitude: <span id="lngVal">Fetching...</span></p>
+                        <p class="text-gray-400 text-xs">Select a destination waypoint below to initiate real-time audio routing.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <button onclick="navigateWaypoint('Campus Main Block')" class="bg-white/5 hover:bg-cyan-500/20 border border-gray-700 hover:border-cyan-500 p-3 rounded-xl text-xs font-semibold transition text-left cursor-pointer">
+                    📍 Campus Main Block
+                </button>
+                <button onclick="navigateWaypoint('Washroom Corridor')" class="bg-white/5 hover:bg-cyan-500/20 border border-gray-700 hover:border-cyan-500 p-3 rounded-xl text-xs font-semibold transition text-left cursor-pointer">
+                    🚻 Washroom Corridor
+                </button>
+                <button onclick="navigateWaypoint('Auditorium Checkpoint')" class="bg-white/5 hover:bg-cyan-500/20 border border-gray-700 hover:border-cyan-500 p-3 rounded-xl text-xs font-semibold transition text-left cursor-pointer">
+                    🏛️ Auditorium Checkpoint
+                </button>
+            </div>
+        </div>
+
+        <div class="glass p-6 rounded-2xl glow-box flex flex-col justify-between">
+            <div>
+                <h2 class="text-lg font-bold text-purple-300 mb-4">Audio Guidance Engine</h2>
+                <div class="bg-black/40 p-4 rounded-xl border border-gray-800 min-h-[140px] flex flex-col justify-center items-center">
+                    <audio id="audioPlayer" controls class="w-full hidden mb-2"></audio>
+                    <p id="instructionLog" class="text-xs text-gray-300 text-center">Awaiting destination selection...</p>
+                </div>
+            </div>
+
+            <div class="mt-6 space-y-3">
+                <label class="text-xs uppercase tracking-wider text-gray-400 font-semibold">Select TTS Engine</label>
+                <select id="ttsEngine" class="w-full bg-black/60 border border-gray-700 text-xs text-gray-300 p-2.5 rounded-lg focus:outline-none focus:border-cyan-500">
+                    <option value="gtts">gTTS (Google Text-to-Speech)</option>
+                    <option value="narakeet">Narakeet API (Professional Voice)</option>
+                </select>
+            </div>
+        </div>
+    </main>
+
+    <footer class="max-w-6xl mx-auto w-full text-center py-4 border-t border-gray-800 text-xs text-gray-500">
+        <p>No bell, No hell, only heaven. Built with excellence for AMCEC HackAttack.</p>
+    </footer>
+
+    <script>
+        let currentLat = 12.9716;
+        let currentLng = 77.5946;
+
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(
+                (position) => {
+                    currentLat = position.coords.latitude;
+                    currentLng = position.coords.longitude;
+                    document.getElementById('latVal').innerText = currentLat.toFixed(4);
+                    document.getElementById('lngVal').innerText = currentLng.toFixed(4);
+                    document.getElementById('gpsStatus').innerText = "● GPS Active & Locked";
+                },
+                (error) => {
+                    document.getElementById('latVal').innerText = currentLat;
+                    document.getElementById('lngVal').innerText = currentLng;
+                    document.getElementById('gpsStatus').innerText = "● Simulation GPS Active";
+                },
+                { enableHighAccuracy: true }
+            );
+        }
+
+        async function navigateWaypoint(destination) {
+            const logBox = document.getElementById('instructionLog');
+            const engine = document.getElementById('ttsEngine').value;
+            logBox.innerHTML = `<span class="text-cyan-400 animate-pulse">Calculating waypoint route to ${destination}...</span>`;
+
+            try {
+                const res = await fetch('/api/navigate-waypoint', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ destination: destination, lat: currentLat, lng: currentLng })
+                });
+                const data = await res.json();
+                
+                logBox.innerHTML = `<p class="text-green-400 font-semibold mb-1">Target: ${destination}</p><p class="text-gray-300">${data.instruction}</p>`;
+                
+                const audioRes = await fetch('/api/speak', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ text: data.instruction, engine: engine })
+                });
+                const audioData = await audioRes.json();
+                playAudio(audioData.audio_url);
+
+            } catch (err) {
+                logBox.innerHTML = `<p class="text-red-400">Navigation error: ${err}</p>`;
+            }
+        }
+
+        function playAudio(url) {
+            const player = document.getElementById('audioPlayer');
+            player.src = url + "?t=" + new Date().getTime();
+            player.style.display = "block";
+            player.play();
+        }
+    </script>
+</body>
+</html>
